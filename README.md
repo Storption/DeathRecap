@@ -38,3 +38,6 @@ hint_text_size_percent: 80
 ```
 
 The full recap text - including the exact layout and wording - is configurable via the generated translation file.
+
+## Showcase
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/872b4dbb-6bd1-431a-a7d2-7dd5ebaaf52c" />
