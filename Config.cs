@@ -33,5 +33,23 @@
         /// </summary>
         [Description("The recap text's size, as a percentage of the default hint size.")]
         public int HintTextSizePercent { get; set; } = 80;
+
+        /// <summary>
+        /// Gets or sets whether to check for and automatically install updates.
+        /// </summary>
+        [Description("Whether to check for and automatically install updates.")]
+        public bool AutoUpdateEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether to keep a backup of the previous .dll before replacing it with an update.
+        /// </summary>
+        [Description("Whether to keep a backup of the previous .dll before replacing it with an update.")]
+        public bool AutoUpdateBackup { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether to automatically restart the server once the current round ends, to apply a downloaded update.
+        /// </summary>
+        [Description("Whether to automatically restart the server once the current round ends, to apply a downloaded update. Never restarts mid-round.")]
+        public bool AutoUpdateRestart { get; set; } = true;
     }
 }

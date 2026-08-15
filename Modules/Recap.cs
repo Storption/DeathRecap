@@ -96,6 +96,13 @@
             DamageDealtTo[id] = new Dictionary<int, float>();
             LastKnownDistance[id] = new Dictionary<int, float>();
 
+            foreach (Dictionary<int, float> inner in DamageTakenFrom.Values)
+                inner.Remove(id);
+            foreach (Dictionary<int, float> inner in DamageDealtTo.Values)
+                inner.Remove(id);
+            foreach (Dictionary<int, float> inner in LastKnownDistance.Values)
+                inner.Remove(id);
+
             StopRecap(id);
         }
 

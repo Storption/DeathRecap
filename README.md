@@ -6,11 +6,13 @@ An [EXILED](https://github.com/ExMod-Team/EXILED) plugin for SCP: Secret Laborat
 [![Latest](https://img.shields.io/github/v/release/Storption/DeathRecap?include_prereleases&style=for-the-badge&logo=github&label=Latest%20Release&color=green)](https://github.com/Storption/DeathRecap/releases/latest)
 [![Discord](https://img.shields.io/discord/1114170053949128817?style=for-the-badge&color=5865F2&logo=discord&label=Discord&logoColor=white)](https://join.storption.com)
 
-# How it works
+## How it works
  
-When a player dies, they're shown who killed them, the weapon used, the distance of the killing blow, how much total damage the killer dealt to them, and how much damage they managed to deal back before dying.
+When a player dies, they're shown who killed them, the weapon used, the distance of the killing blow, how much total damage the killer dealt to them, and how much damage they managed to deal back before dying. The killer's name uses their badge color when they have one, falling back to their role's color otherwise.
  
 By default, the recap stays on screen for as long as the player remains spectating that life — it disappears the moment they respawn or the round ends. This can be changed to auto-hide after a fixed number of seconds instead, via config.
+ 
+**Auto-update** - checks this plugin's own GitHub repo for a newer release, and if found, downloads and applies it automatically, restarting the server once the current round ends.
 
 ## Requirememts
 
@@ -35,6 +37,12 @@ recap_duration_seconds: 0
 hint_line_padding: 15
 # The recap text's size, as a percentage of the default hint size.
 hint_text_size_percent: 80
+# Whether to check for and automatically install updates.
+auto_update_enabled: true
+# Whether to keep a backup of the previous .dll before replacing it with an update.
+auto_update_backup: true
+# Whether to automatically restart the server once the current round ends, to apply a downloaded update. Never restarts mid-round.
+auto_update_restart: true
 ```
 
 The full recap text - including the exact layout and wording - is configurable via the generated translation file.

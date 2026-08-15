@@ -26,7 +26,7 @@
         public override Version RequiredExiledVersion { get; } = new Version(9, 14, 2);
 
         /// <inheritdoc/>
-        public override Version Version { get; } = new Version(1, 1, 0);
+        public override Version Version { get; } = new Version(1, 2, 0);
 
         /// <inheritdoc/>
         public override void OnEnabled()
@@ -34,6 +34,7 @@
             Instance = this;
 
             Modules.Recap.RegisterEvents();
+            Modules.AutoUpdate.RegisterEvents();
 
             base.OnEnabled();
         }
@@ -42,6 +43,7 @@
         public override void OnDisabled()
         {
             Modules.Recap.UnregisterEvents();
+            Modules.AutoUpdate.UnregisterEvents();
 
             Instance = null;
 
