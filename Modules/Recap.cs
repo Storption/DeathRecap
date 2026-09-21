@@ -1,16 +1,16 @@
 ﻿namespace DeathRecap.Modules
 {
+    using DamageType = Exiled.API.Enums.DamageType;
     using Exiled.API.Extensions;
     using Exiled.API.Features;
     using Exiled.API.Features.DamageHandlers;
     using Exiled.Events.EventArgs.Player;
     using Exiled.Events.EventArgs.Server;
+    using MEC;
     using PlayerRoles;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
     using UnityEngine;
 
     /// <summary>
@@ -24,7 +24,12 @@
         private static readonly Dictionary<int, Dictionary<int, float>> DamageDealtTo = new();
         private static readonly Dictionary<int, Dictionary<int, float>> LastKnownDistance = new();
         private static readonly Dictionary<int, float> HealthBeforeHit = new();
-        private static readonly Dictionary<int, CancellationTokenSource> ActiveRecaps = new();
+        private static readonly Dictionary<int, CoroutineHandle> ActiveRecaps = new();
+        private static readonly Dictionary<int, Dictionary<DamageType, float>> DamageTakenByCause = new();
+        private static readonly Dictionary<int, string> AttackerNames = new();
+        private static readonly Dictionary<int, DateTime> LifeStartTimes = new();
+        private static readonly Dictionary<int, int> KillsThisLife = new();
+        private static readonly Dictionary<int, (string Text, string Color)> DeathLocations = new();
 
         private static readonly Dictionary<string, string> BadgeColorHex = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -55,11 +60,15 @@
         private static Config Config => Plugin.Instance!.Config;
         private static Translation Translation => Plugin.Instance!.Translation;
 
+        private static float TotalHealth(Player player) => player.Health + player.HumeShield + player.ArtificialHealth;
+
         public static void RegisterEvents()
         {
             Exiled.Events.Handlers.Player.Spawned += OnSpawned;
+            Exiled.Events.Handlers.Player.Left += OnLeft;
             Exiled.Events.Handlers.Player.Hurting += OnPlayerHurting;
             Exiled.Events.Handlers.Player.Hurt += OnPlayerHurt;
+            Exiled.Events.Handlers.Player.Dying += OnPlayerDying;
             Exiled.Events.Handlers.Player.Died += OnPlayerDied;
             Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnded;
             Exiled.Events.Handlers.Server.WaitingForPlayers += OnWaitingForPlayers;
@@ -68,22 +77,57 @@
         public static void UnregisterEvents()
         {
             Exiled.Events.Handlers.Player.Spawned -= OnSpawned;
+            Exiled.Events.Handlers.Player.Left -= OnLeft;
             Exiled.Events.Handlers.Player.Hurting -= OnPlayerHurting;
             Exiled.Events.Handlers.Player.Hurt -= OnPlayerHurt;
+            Exiled.Events.Handlers.Player.Dying -= OnPlayerDying;
             Exiled.Events.Handlers.Player.Died -= OnPlayerDied;
             Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnded;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= OnWaitingForPlayers;
+
+            ResetState();
         }
 
         private static void OnWaitingForPlayers()
         {
+            ResetState();
+        }
+
+        private static void OnLeft(LeftEventArgs ev)
+        {
+            int id = ev.Player.Id;
+
+            if (ActiveRecaps.TryGetValue(id, out CoroutineHandle handle))
+            {
+                Timing.KillCoroutines(handle);
+                ActiveRecaps.Remove(id);
+            }
+
+            DamageTakenFrom.Remove(id);
+            DamageDealtTo.Remove(id);
+            LastKnownDistance.Remove(id);
+            HealthBeforeHit.Remove(id);
+            DamageTakenByCause.Remove(id);
+            AttackerNames.Remove(id);
+            LifeStartTimes.Remove(id);
+            KillsThisLife.Remove(id);
+            DeathLocations.Remove(id);
+        }
+
+        private static void ResetState()
+        {
+            foreach (int id in ActiveRecaps.Keys.ToList())
+                StopRecap(id);
+
             DamageTakenFrom.Clear();
             DamageDealtTo.Clear();
             LastKnownDistance.Clear();
             HealthBeforeHit.Clear();
-
-            foreach (int id in ActiveRecaps.Keys.ToList())
-                StopRecap(id);
+            DamageTakenByCause.Clear();
+            AttackerNames.Clear();
+            LifeStartTimes.Clear();
+            KillsThisLife.Clear();
+            DeathLocations.Clear();
         }
 
         private static void OnSpawned(SpawnedEventArgs ev)
@@ -92,9 +136,12 @@
                 return;
 
             int id = ev.Player.Id;
+            if (!LifeStartTimes.ContainsKey(id))
+                LifeStartTimes[id] = DateTime.Now;
             DamageTakenFrom[id] = new Dictionary<int, float>();
             DamageDealtTo[id] = new Dictionary<int, float>();
             LastKnownDistance[id] = new Dictionary<int, float>();
+            DamageTakenByCause[id] = new Dictionary<DamageType, float>();
 
             foreach (Dictionary<int, float> inner in DamageTakenFrom.Values)
                 inner.Remove(id);
@@ -108,13 +155,18 @@
 
         private static void OnPlayerHurting(HurtingEventArgs ev)
         {
-            if (ev.Attacker is null || ev.Player is null || ev.Attacker == ev.Player)
+            if (ev.Player is null)
                 return;
+
+            HealthBeforeHit.Remove(ev.Player.Id);
 
             if (ev.Amount <= 0)
                 return;
 
-            HealthBeforeHit[ev.Player.Id] = ev.Player.Health;
+            HealthBeforeHit[ev.Player.Id] = TotalHealth(ev.Player);
+
+            if (ev.Attacker is null || ev.Attacker == ev.Player)
+                return;
 
             int attackerId = ev.Attacker.Id;
             int victimId = ev.Player.Id;
@@ -130,18 +182,40 @@
 
         private static void OnPlayerHurt(HurtEventArgs ev)
         {
-            if (ev.Attacker is null || ev.Player is null || ev.Attacker == ev.Player)
+            if (ev.Player is null)
                 return;
 
-            if (!HealthBeforeHit.TryGetValue(ev.Player.Id, out float healthBefore))
+            int victimId = ev.Player.Id;
+
+            if (!HealthBeforeHit.TryGetValue(victimId, out float healthBefore))
                 return;
 
-            float actualDamage = healthBefore - ev.Player.Health;
+            HealthBeforeHit.Remove(victimId);
+
+            float actualDamage = healthBefore - Math.Max(0f, TotalHealth(ev.Player));
             if (actualDamage <= 0)
                 return;
 
+            if (ev.Attacker is null || ev.Attacker == ev.Player)
+            {
+                if (!DamageTakenByCause.TryGetValue(victimId, out Dictionary<DamageType, float>? causes))
+                {
+                    causes = new Dictionary<DamageType, float>();
+                    DamageTakenByCause[victimId] = causes;
+                }
+
+                DamageType cause = ev.DamageHandler.Type;
+                causes.TryGetValue(cause, out float currentCause);
+                causes[cause] = currentCause + actualDamage;
+
+                if (Config.Debug)
+                    Log.Debug($"Hurt: {ev.Player.Nickname} (id={victimId}) took {actualDamage:F1} from {cause}.");
+
+                return;
+            }
+
             int attackerId = ev.Attacker.Id;
-            int victimId = ev.Player.Id;
+            AttackerNames[attackerId] = ev.Attacker.Nickname;
 
             if (!DamageTakenFrom.TryGetValue(victimId, out Dictionary<int, float>? incoming))
             {
@@ -165,48 +239,136 @@
                 Log.Debug($"Hurt: {ev.Attacker.Nickname} (id={attackerId}) -> {ev.Player.Nickname} (id={victimId}), rawAmount={ev.Amount:F1}, actualDamage={actualDamage:F1}, totalTaken={incoming[attackerId]:F1}.");
         }
 
+        private static void OnPlayerDying(DyingEventArgs ev)
+        {
+            if (ev.Player is null || !Config.ShowLocation)
+                return;
+
+            if (DeathDetails.TryDescribeLocation(ev.Player, out string location, out string color))
+                DeathLocations[ev.Player.Id] = (location, color);
+            else
+                DeathLocations.Remove(ev.Player.Id);
+        }
+
         private static void OnPlayerDied(DiedEventArgs ev)
         {
-            if (ev.Player is null || ev.Attacker is null || ev.Attacker == ev.Player)
+            if (ev.Player is null)
+                return;
+
+            if (ev.TargetOldRole is RoleTypeId.Spectator or RoleTypeId.Overwatch or RoleTypeId.None)
                 return;
 
             Player victim = ev.Player;
-            Player killer = ev.Attacker;
+            Player? killer = ev.Attacker is not null && ev.Attacker != victim ? ev.Attacker : null;
             int victimId = victim.Id;
-            int killerId = killer.Id;
 
-            DamageTakenFrom.TryGetValue(victimId, out Dictionary<int, float>? victimIncoming);
-            float damageTaken = victimIncoming is not null && victimIncoming.TryGetValue(killerId, out float dt) ? dt : 0f;
+            DeathCategory category = DeathClassifier.Classify(ev, out string? customReason);
+            List<KeyValuePair<string, float>> breakdown = BuildBreakdown(victimId);
 
-            DamageDealtTo.TryGetValue(victimId, out Dictionary<int, float>? victimOutgoing);
-            float damageDealt = victimOutgoing is not null && victimOutgoing.TryGetValue(killerId, out float dd) ? dd : 0f;
+            TimeSpan? survived = null;
+            if (LifeStartTimes.TryGetValue(victimId, out DateTime lifeStart))
+            {
+                survived = DateTime.Now - lifeStart;
+                LifeStartTimes.Remove(victimId);
+            }
 
-            string weapon = GetWeapon(ev.DamageHandler);
+            KillsThisLife.TryGetValue(victimId, out int kills);
+            KillsThisLife.Remove(victimId);
 
-            float distance = 0f;
-            if (LastKnownDistance.TryGetValue(victimId, out Dictionary<int, float>? victimDistances) && victimDistances.TryGetValue(killerId, out float lastDistance))
-                distance = Math.Max(lastDistance, 0.1f);
+            DeathLocations.TryGetValue(victimId, out (string Text, string Color) deathLocation);
+            DeathLocations.Remove(victimId);
 
-            string distanceFormatted = distance.ToString("F2");
+            if (killer is not null && category is not DeathCategory.TeamKill)
+            {
+                KillsThisLife.TryGetValue(killer.Id, out int killerKills);
+                KillsThisLife[killer.Id] = killerKills + 1;
+            }
 
-            bool hasBadge = !string.IsNullOrEmpty(killer.RankColor) && killer.RankColor != "default";
-            string nameColor = hasBadge && BadgeColorHex.TryGetValue(killer.RankColor, out string? badgeHex)
-                ? badgeHex
-                : killer.Role.Type.GetColor().ToHex();
-            string coloredName = $"<color={nameColor}>{killer.Nickname}</color>";
+            if (Config.Debug)
+            {
+                Log.Debug($"Death: {victim.Nickname} (id={victimId}) - category={category}, type={ev.DamageHandler.Type}{(customReason is null ? string.Empty : $", reason='{customReason}'")}.");
+                Log.Debug($"Damage taken by {victim.Nickname}: {string.Join(", ", breakdown.Select(entry => $"{entry.Key} {entry.Value:F0}"))}.");
+            }
 
-            string text = string.Format(
-                Translation.RecapText,
-                coloredName,
-                weapon,
-                distanceFormatted,
-                (int)damageTaken,
-                (int)damageDealt);
+            if (!Config.ShowEnvironmentalDeaths && (category is DeathCategory.Environment or DeathCategory.CustomReason or DeathCategory.Unknown))
+                return;
 
+            DeathContext death = new()
+            {
+                Category = category,
+                CauseName = CauseNames.Get(ev.DamageHandler.Type),
+                CustomReason = customReason,
+                Breakdown = breakdown,
+                HitLocation = DeathDetails.DescribeHit(ev),
+                Survived = survived,
+                Location = deathLocation.Text,
+                LocationColor = deathLocation.Color ?? "#FFFFFF",
+                KillsThisLife = kills,
+            };
+
+            if (killer is not null)
+            {
+                int killerId = killer.Id;
+
+                death.KillerName = ColoredName(killer);
+                death.KillerColor = NameColor(killer);
+                death.KillerRole = RoleDisplay.Get(killer, out string roleSource);
+
+                if (killer.IsAlive)
+                {
+                    death.KillerHealth = (int)Math.Ceiling(killer.Health);
+                    death.KillerMaxHealth = (int)Math.Ceiling(killer.MaxHealth);
+                }
+
+                if (DamageDealtTo.TryGetValue(victimId, out Dictionary<int, float>? dealt) && dealt.TryGetValue(killerId, out float damageDealt))
+                    death.DamageDealtToKiller = damageDealt;
+
+                if (LastKnownDistance.TryGetValue(victimId, out Dictionary<int, float>? distances) && distances.TryGetValue(killerId, out float lastDistance))
+                    death.Distance = Math.Max(lastDistance, 0.1f);
+
+                if (Config.Debug)
+                    Log.Debug($"Killer role: '{death.KillerRole}' (source={roleSource}, base={killer.Role.Type}, uniqueRole='{killer.UniqueRole}', customInfo='{killer.CustomInfo}').");
+            }
+
+            string text = RecapFormatter.Build(death);
             ShowRecap(victim, text);
 
             if (Config.Debug)
-                Log.Debug($"Recap for {victim.Nickname} (id={victimId}): killer={killer.Nickname} (id={killerId}), weapon: {weapon}, distance={distance:F1}, damageTaken={damageTaken:F1}, damageDealt={damageDealt:F1}.");
+                Log.Debug($"Recap for {victim.Nickname} (id={victimId}): {System.Text.RegularExpressions.Regex.Replace(text.Replace("\n", " | "), "<.*?>", string.Empty)}");
+        }
+
+        private static string NameColor(Player player)
+        {
+            bool hasBadge = !string.IsNullOrEmpty(player.RankColor) && player.RankColor != "default";
+            return hasBadge && BadgeColorHex.TryGetValue(player.RankColor, out string? badgeHex)
+                ? badgeHex
+                : player.Role.Type.GetColor().ToHex();
+        }
+
+        private static string ColoredName(Player player) => $"<color={NameColor(player)}>{player.Nickname}</color>";
+
+        private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
+
+        private static List<KeyValuePair<string, float>> BuildBreakdown(int victimId)
+        {
+            List<KeyValuePair<string, float>> entries = new();
+            
+            if (DamageTakenFrom.TryGetValue(victimId, out Dictionary<int, float>? attackers))
+            {
+                foreach (KeyValuePair<int, float> attacker in attackers)
+                {
+                    AttackerNames.TryGetValue(attacker.Key, out string? name);
+                    entries.Add(new KeyValuePair<string, float>(name ?? "Unknown", attacker.Value));
+                }
+            }
+
+            if (DamageTakenByCause.TryGetValue(victimId, out Dictionary<DamageType, float>? causes))
+            {
+                foreach (KeyValuePair<DamageType, float> cause in causes)
+                    entries.Add(new KeyValuePair<string, float>(Capitalize(CauseNames.Get(cause.Key)), cause.Value));
+            }
+
+            return entries.OrderByDescending(entry => entry.Value).ToList();
         }
 
         private static void OnRoundEnded(RoundEndedEventArgs ev)
@@ -215,62 +377,43 @@
                 StopRecap(id);
         }
 
-        private static string GetWeapon(DamageHandlerBase damageHandler)
-        {
-            if (damageHandler is FirearmDamageHandler firearmHandler)
-                return firearmHandler.Item?.Type.ToString() ?? "Unknown";
-
-            return damageHandler.Type.ToString();
-        }
-
-        private static async void ShowRecap(Player player, string text)
+        private static void ShowRecap(Player player, string text)
         {
             int id = player.Id;
             StopRecap(id);
 
-            CancellationTokenSource cts = new();
-            ActiveRecaps[id] = cts;
+            ActiveRecaps[id] = Timing.RunCoroutine(RecapLoop(player, text));
+        }
 
-            string padding = new('\n', Config.HintLinePadding);
-            string paddedText = $"{padding}<size={Config.HintTextSizePercent}%>{text}</size>";
+        private static IEnumerator<float> RecapLoop(Player player, string text)
+        {
+            string padding = new('\n', Math.Max(0, Config.HintLinePadding));
+            string paddedText = $"{padding}<size={Math.Max(1, Config.HintTextSizePercent)}%>{text}</size>";
+            float duration = Config.RecapDurationSeconds;
+            float elapsed = 0f;
 
-            try
+            while (player.IsConnected && (duration <= 0f || elapsed < duration))
             {
-                float elapsed = 0f;
-                while (!cts.IsCancellationRequested)
-                {
-                    player.ShowHint(paddedText, RefreshIntervalSeconds + 1f);
+                float remaining = duration > 0f ? duration - elapsed : float.MaxValue;
+                player.ShowHint(paddedText, Math.Min(RefreshIntervalSeconds + 1f, remaining));
 
-                    if (Config.RecapDurationSeconds > 0)
-                    {
-                        elapsed += RefreshIntervalSeconds;
-                        if (elapsed >= Config.RecapDurationSeconds)
-                            break;
-                    }
+                float step = Math.Min(RefreshIntervalSeconds, remaining);
+                elapsed += step;
+                yield return Timing.WaitForSeconds(step);
+            }
 
-                    await Task.Delay(TimeSpan.FromSeconds(RefreshIntervalSeconds), cts.Token);
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                // Expected when cancelled - not an error.
-            }
-            finally
-            {
-                ActiveRecaps.Remove(id);
-            }
+            ActiveRecaps.Remove(player.Id);
         }
 
         private static void StopRecap(int id)
         {
-            if (ActiveRecaps.TryGetValue(id, out CancellationTokenSource? cts))
-            {
-                cts.Cancel();
-                ActiveRecaps.Remove(id);
+            if (!ActiveRecaps.TryGetValue(id, out CoroutineHandle handle))
+                return;
 
-                Player? player = Player.Get(id);
-                player?.ShowHint(" ", 0.1f);
-            }
+            Timing.KillCoroutines(handle);
+            ActiveRecaps.Remove(id);
+
+            Player.Get(id)?.ShowHint(" ", 0.1f);
         }
     }
 }
