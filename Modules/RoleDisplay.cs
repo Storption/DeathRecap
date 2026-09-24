@@ -100,7 +100,7 @@
             for (int i = lines.Length - 1; i >= 0; i--)
             {
                 if (!string.IsNullOrWhiteSpace(lines[i]))
-                    return lines[1].Trim();
+                    return lines[i].Trim();
             }
 
             return null;

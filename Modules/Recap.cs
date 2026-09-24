@@ -31,32 +31,6 @@
         private static readonly Dictionary<int, int> KillsThisLife = new();
         private static readonly Dictionary<int, (string Text, string Color)> DeathLocations = new();
 
-        private static readonly Dictionary<string, string> BadgeColorHex = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["pink"] = "#FF96DE",
-            ["red"] = "#C50000",
-            ["brown"] = "#944710",
-            ["silver"] = "#A0A0A0",
-            ["light_green"] = "#32CD32",
-            ["crimson"] = "#DC143C",
-            ["cyan"] = "#00B7EB",
-            ["aqua"] = "#00FFFF",
-            ["deep_pink"] = "#FF1493",
-            ["tomato"] = "#FF6448",
-            ["yellow"] = "#FAFF86",
-            ["magenta"] = "#FF0090",
-            ["blue_green"] = "#4DFFB8",
-            ["orange"] = "#FF9966",
-            ["lime"] = "#8FFF00",
-            ["green"] = "#228B22",
-            ["emerald"] = "#50C878",
-            ["carmine"] = "#960018",
-            ["nickel"] = "#727472",
-            ["mint"] = "#98F898",
-            ["army_green"] = "#4B5320",
-            ["pumpkin"] = "#EE7600",
-        };
-
         private static Config Config => Plugin.Instance!.Config;
         private static Translation Translation => Plugin.Instance!.Translation;
 
@@ -143,8 +117,6 @@
             LastKnownDistance[id] = new Dictionary<int, float>();
             DamageTakenByCause[id] = new Dictionary<DamageType, float>();
 
-            foreach (Dictionary<int, float> inner in DamageTakenFrom.Values)
-                inner.Remove(id);
             foreach (Dictionary<int, float> inner in DamageDealtTo.Values)
                 inner.Remove(id);
             foreach (Dictionary<int, float> inner in LastKnownDistance.Values)
@@ -309,12 +281,15 @@
             if (killer is not null)
             {
                 int killerId = killer.Id;
+                RoleTypeId killerRole = DeathClassifier.GetKillerRole(ev, killer);
+                bool sameLife = DeathClassifier.IsSameLife(ev, killer);
+                string roleSource = "RoleAtHit";
 
-                death.KillerName = ColoredName(killer);
-                death.KillerColor = NameColor(killer);
-                death.KillerRole = RoleDisplay.Get(killer, out string roleSource);
+                death.KillerName = ColoredName(killer, killerRole);
+                death.KillerColor = NameColor(killerRole);
+                death.KillerRole = sameLife ? RoleDisplay.Get(killer, out roleSource) : RoleDisplay.GetBaseRoleName(killerRole);
 
-                if (killer.IsAlive)
+                if (sameLife)
                 {
                     death.KillerHealth = (int)Math.Ceiling(killer.Health);
                     death.KillerMaxHealth = (int)Math.Ceiling(killer.MaxHealth);
@@ -337,15 +312,9 @@
                 Log.Debug($"Recap for {victim.Nickname} (id={victimId}): {System.Text.RegularExpressions.Regex.Replace(text.Replace("\n", " | "), "<.*?>", string.Empty)}");
         }
 
-        private static string NameColor(Player player)
-        {
-            bool hasBadge = !string.IsNullOrEmpty(player.RankColor) && player.RankColor != "default";
-            return hasBadge && BadgeColorHex.TryGetValue(player.RankColor, out string? badgeHex)
-                ? badgeHex
-                : player.Role.Type.GetColor().ToHex();
-        }
+        private static string NameColor(RoleTypeId role) => role.GetColor().ToHex();
 
-        private static string ColoredName(Player player) => $"<color={NameColor(player)}>{player.Nickname}</color>";
+        private static string ColoredName(Player player, RoleTypeId role) => $"<color={NameColor(role)}>{player.Nickname}</color>";
 
         private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 

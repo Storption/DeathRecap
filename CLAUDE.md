@@ -1,6 +1,6 @@
 # DeathRecap
 
-Shows a player a recap of their death once they enter spectator. The wording depends on the kind of death (player, SCP, zombie, teamkill, environment, custom reason, unknown), with optional detail lines (distance, hit location, killer health, damage dealt, damage breakdown by source, survival time, location, kills that life). Current version: **v2.0.0**.
+Shows a player a recap of their death once they enter spectator. The wording depends on the kind of death (player, SCP, zombie, teamkill, environment, custom reason, unknown), with optional detail lines (distance, hit location, killer health, damage dealt, damage breakdown by source, survival time, location, kills that life). Current version: **v2.0.1**.
 
 See `../CLAUDE.md` for shared plugin conventions and the `AutoUpdate` module design.
 
@@ -34,3 +34,7 @@ See `../CLAUDE.md` for shared plugin conventions and the `AutoUpdate` module des
 - Damage is clamped so a lethal hit can't count more than the health the victim had left (`Math.Max(0f, TotalHealth)`). Without it, overkill inflated "damage taken" past the victim's max health.
 - Some scripted kills (e.g. the admin `explode` command on a dummy) call `KillPlayer` on someone who is already dead, firing `Died` a second time. `OnPlayerDied` ignores deaths whose `TargetOldRole` is already Spectator/Overwatch/None, otherwise the second event replaces the real recap.
 - The recap is a header line plus rows from `Config.RecapLayout` (each entry lists segment keys like `hit, distance, killer_health`); `RecapFormatter.BuildSegment` returns null for a segment that's switched off or has no data, and empty rows are dropped. Nine separate lines ran off the bottom of the screen, so the default groups details several to a line, joined by `Translation.DetailSeparator`.
+- The killer is judged by their role *when the damage was dealt* (`ev.DamageHandler.AttackerFootprint.Role`, guarded by `IsSet` since an unset Footprint's role is `Scp173`), not their current role - otherwise a grenade that lands after its thrower died reads as "Teamkilled by X (Spectator)". `DeathClassifier.IsSameLife` compares the Footprint's `LifeIdentifier` with the killer's current life; if they've died or respawned since, the recap shows the base role name at the time of the hit and skips their health (custom role plugins only know the current role).
+- Names are colored by role only (`role.GetColor()`), using the role at the time of the hit so the name matches the role shown next to it. Badge/rank colors were dropped on purpose in v2.0.1.
+- `OnSpawned` clears the respawning player from other players' `DamageDealtTo` and `LastKnownDistance` (those describe the killer's current life), but NOT from `DamageTakenFrom` - damage someone took from a player's previous life is still damage taken this life.
+- Pocket Dimension deaths (decay or a wrong exit) have no attacker in the game, so they show as environmental ("You died to the pocket dimension") - kept that way on purpose; SCP-106's earlier hits still appear by name in the breakdown.

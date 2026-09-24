@@ -4,11 +4,13 @@
     using System.IO;
     using System.Net;
     using System.Net.Http;
+    using System.Runtime.Serialization.Json;
     using System.Security.Cryptography;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Xml;
+    using System.Xml.Linq;
     using Exiled.API.Features;
-    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Checks GitHub for a newer release of this plugin and, if found, downloads it and restarts
@@ -186,27 +188,29 @@
         private static async Task<(string Tag, string DownloadUrl, string? Sha256)?> GetLatestReleaseAsync(HttpClient client)
         {
             string url = $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/latest";
-            string json = await client.GetStringAsync(url);
-            JObject release = JObject.Parse(json);
+            byte[] json = await client.GetByteArrayAsync(url);
 
-            string? tagName = release["tag_name"]?.ToString();
-            if (string.IsNullOrWhiteSpace(tagName))
+            XElement release;
+            using (XmlDictionaryReader reader = JsonReaderWriterFactory.CreateJsonReader(json, XmlDictionaryReaderQuotas.Max))
+                release = XElement.Load(reader);
+
+            string? tag = release.Element("tag_name")?.Value;
+            if (string.IsNullOrWhiteSpace(tag))
                 return null;
 
-            JToken? asset = (release["assets"] as JArray)
-                ?.FirstOrDefault(a =>
-                    string.Equals(a["name"]?.ToString(), DllFileName, StringComparison.OrdinalIgnoreCase));
+            XElement? asset = release.Element("assets")?.Elements()
+                .FirstOrDefault(a => string.Equals(a.Element("name")?.Value, DllFileName, StringComparison.OrdinalIgnoreCase));
 
-            string? downloadUrl = asset?["browser_download_url"]?.ToString();
+            string? downloadUrl = asset?.Element("browser_download_url")?.Value;
             if (string.IsNullOrWhiteSpace(downloadUrl))
                 return null;
 
-            string? digest = asset?["digest"]?.ToString();
+            string? digest = asset!.Element("digest")?.Value;
             string? sha256 = digest is not null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)
                 ? digest.Substring("sha256:".Length)
                 : null;
 
-            return (tagName!, downloadUrl!, sha256);
+            return (tag!, downloadUrl!, sha256);
         }
 
         private static bool TryParseVersion(string tag, out Version? version)

@@ -10,7 +10,7 @@ An [EXILED](https://github.com/ExMod-Team/EXILED) plugin for SCP: Secret Laborat
 
 When a player dies, they're shown what killed them, worded for the kind of death:
 
-- **Killed by a player** - their name (in their badge or role color), their role, the weapon, and where the shot landed (headshot, body, limb).
+- **Killed by a player** - their name (in their role color), their role, the weapon, and where the shot landed (headshot, body, limb).
 - **Killed by an SCP or zombie** - "Killed by SCP-049", with the player's name in brackets.
 - **Killed by a teammate** - called out as a teamkill.
 - **Killed by the environment** - falls, the Tesla gate, decontamination, the warhead, bleeding, poison and so on.
