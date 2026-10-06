@@ -19,6 +19,7 @@
         private static MethodInfo? ucrTryGet;
         private static PropertyInfo? ucrRole;
         private static PropertyInfo? ucrName;
+        private static bool ucrLookedUp;
 
         private static Config Config => Plugin.Instance!.Config;
         private static Translation Translation => Plugin.Instance!.Translation;
@@ -110,8 +111,15 @@
         {
             try
             {
-                if (ucrTryGet is null && !ResolveUcr())
-                    return null;
+                if (ucrTryGet is null)
+                {
+                    if (ucrLookedUp)
+                        return null;
+
+                    ucrLookedUp = true;
+                    if (!ResolveUcr())
+                        return null;
+                }
 
                 object?[] args = { player.ReferenceHub, null };
                 if (ucrTryGet!.Invoke(null, args) is not true || args[1] is null)
