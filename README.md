@@ -1,10 +1,14 @@
-# DeathRecap
+<p align="center"><img src="logo.svg" width="160" alt="DeathRecap logo"></p>
+
+<h1 align="center">DeathRecap</h1>
+
+<p align="center">
+  <a href="https://github.com/Storption/DeathRecap/releases/latest"><img src="https://img.shields.io/github/downloads/Storption/DeathRecap/total?style=for-the-badge&logo=github&color=blue" alt="Downloads"></a>
+  <a href="https://github.com/Storption/DeathRecap/releases/latest"><img src="https://img.shields.io/github/v/release/Storption/DeathRecap?include_prereleases&style=for-the-badge&logo=github&label=Latest%20Release&color=green" alt="Latest release"></a>
+  <a href="https://join.storption.com"><img src="https://img.shields.io/discord/1114170053949128817?style=for-the-badge&color=5865F2&logo=discord&label=Discord&logoColor=white" alt="Discord"></a>
+</p>
 
 An [EXILED](https://github.com/ExMod-Team/EXILED) plugin for SCP: Secret Laboratory that shows a player a recap of their death once they enter spectator.
-
-[![Downloads](https://img.shields.io/github/downloads/Storption/DeathRecap/total?style=for-the-badge&logo=github&color=blue)](https://github.com/Storption/DeathRecap/releases/latest)
-[![Latest](https://img.shields.io/github/v/release/Storption/DeathRecap?include_prereleases&style=for-the-badge&logo=github&label=Latest%20Release&color=green)](https://github.com/Storption/DeathRecap/releases/latest)
-[![Discord](https://img.shields.io/discord/1114170053949128817?style=for-the-badge&color=5865F2&logo=discord&label=Discord&logoColor=white)](https://join.storption.com)
 
 ## How it works
 
@@ -33,7 +37,7 @@ By default, the recap stays on screen for as long as the player remains spectati
 ## Installation
 
 1. Download the latest `DeathRecap.dll` from the [Releases](https://github.com/Storption/DeathRecap/releases) page.
-2. Place it in your server's EXILED plugins folder (`%AppData%\EXILED\Plugins` on Windows `.config\EXILED\Plugins` on Linux).
+2. Place it in your server's EXILED plugins folder (`%AppData%\EXILED\Plugins` on Windows, `~/.config/EXILED/Plugins` on Linux).
 3. Restart your server. A default config will be generated on first load.
 
 ## Config

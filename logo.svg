@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs></defs>
+  <circle cx="256" cy="256" r="246" fill="#101317"/>
+  <circle cx="256" cy="256" r="226" fill="none" stroke="#E3E5E8" stroke-width="16"/>
+  <g stroke="#7D848C" stroke-width="3" stroke-linecap="round"><line x1="256" y1="46" x2="256" y2="60" transform="rotate(0 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(10 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(20 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(30 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(40 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(50 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(60 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(70 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(80 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(90 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(100 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(110 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(120 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(130 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(140 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(150 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(160 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(170 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(180 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(190 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(200 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(210 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(220 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(230 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(240 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(250 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(260 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(270 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(280 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(290 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(300 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(310 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(320 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(330 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(340 256 256)"/><line x1="256" y1="46" x2="256" y2="60" transform="rotate(350 256 256)"/></g>
+  <circle cx="256" cy="256" r="186" fill="none" stroke="#D64545" stroke-width="6"/>
+  <circle cx="256" cy="256" r="172" fill="none" stroke="#E3E5E8" stroke-width="2" opacity="0.5"/>
+  <g fill="#D64545" stroke="#101317" stroke-width="4"><rect x="242" y="10" width="28" height="30" rx="4" transform="rotate(0 256 256)"/><rect x="242" y="10" width="28" height="30" rx="4" transform="rotate(120 256 256)"/><rect x="242" y="10" width="28" height="30" rx="4" transform="rotate(240 256 256)"/></g>
+  
+  <path d="M256 158 C306 158 344 194 344 242 C344 270 330 290 314 298 V330 H198 V298 C182 290 168 270 168 242 C168 194 206 158 256 158 Z" fill="#D64545"/>
+  <g fill="#101317">
+    <circle cx="221" cy="246" r="23"/>
+    <circle cx="291" cy="246" r="23"/>
+    <path d="M256 272 L243 296 H269 Z"/>
+    <rect x="221" y="306" width="9" height="24"/>
+    <rect x="251.5" y="306" width="9" height="24"/>
+    <rect x="282" y="306" width="9" height="24"/>
+  </g>
+</svg>
