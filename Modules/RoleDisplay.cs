@@ -8,9 +8,6 @@
     using Exiled.API.Features;
     using PlayerRoles;
 
-    /// <summary>
-    /// Works out the name to show for a player's role, including roles added by custom role plugins.
-    /// </summary>
     public static class RoleDisplay
     {
         private static readonly Regex RichTextTags = new("<.*?>", RegexOptions.Compiled);
@@ -24,9 +21,6 @@
         private static Config Config => Plugin.Instance!.Config;
         private static Translation Translation => Plugin.Instance!.Translation;
 
-        /// <summary>
-        /// Builds the default role name dictionary shown in the translation file.
-        /// </summary>
         public static Dictionary<RoleTypeId, string> BuildDefaults()
         {
             return Enum.GetValues(typeof(RoleTypeId))
@@ -35,9 +29,6 @@
                 .ToDictionary(role => role, FormatRoleName);
         }
 
-        /// <summary>
-        /// Gets the name to show for a player's role, and where that name came from.
-        /// </summary>
         public static string Get(Player player, out string source)
         {
             if (Config.CustomRoleNamesEnabled)
@@ -68,9 +59,6 @@
             return GetBaseRoleName(player.Role.Type);
         }
 
-        /// <summary>
-        /// Gets the configured name for a base role, falling back to a formatted version of its identifier.
-        /// </summary>
         public static string GetBaseRoleName(RoleTypeId role)
         {
             return Translation.RoleNames.TryGetValue(role, out string? name) && !string.IsNullOrWhiteSpace(name)

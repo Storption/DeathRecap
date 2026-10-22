@@ -4,9 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    /// <summary>
-    /// Builds the recap text from a <see cref="DeathContext"/> using the configured wording and options.
-    /// </summary>
     public static class RecapFormatter
     {
         private static Config Config => Plugin.Instance!.Config;

@@ -16,7 +16,7 @@ When a player dies, they're shown what killed them, worded for the kind of death
 
 - **Killed by a player** - their name (in their role color), their role, the weapon, and where the shot landed (headshot, body, limb).
 - **Killed by an SCP or zombie** - "Killed by SCP-049", with the player's name in brackets.
-- **Killed by a teammate** - called out as a teamkill.
+- **Killed by a teammate** - called out as a teamkill. Custom teams other plugins register (below) count too.
 - **Killed by the environment** - falls, the Tesla gate, decontamination, the warhead, bleeding, poison and so on.
 - **Custom deaths** - scripted or plugin-made deaths show their own death text.
 
@@ -28,7 +28,30 @@ By default, the recap stays on screen for as long as the player remains spectati
 
 **Custom roles** - if a player has a custom role, the recap can show its name instead of the base role's. It reads EXILED's `UniqueRole` (set by EXILED CustomRoles), asks UncomplicatedCustomRoles if it's installed, and can optionally read the name from a player's custom info (used by SER and some other plugins). With no custom role plugin installed, nothing changes.
 
+**Custom teams** - plugins that add their own teams or roles can register them, so kills between them are judged correctly and their names show in their own color. See [For developers](#for-developers).
+
 **Auto-update** - checks this plugin's own GitHub repo for a newer release, and if found, downloads it, verifies it against the release's SHA-256, and applies it. If restarting is enabled, players are told in-game and the server restarts once the round ends.
+
+## For developers
+
+DeathRecap has a small public API for plugins that add their own teams or roles, such as a custom faction made of Tutorials. Without it, two custom teams on the same vanilla role look like teammates, and a team allied with the SCPs looks like their enemy. A registered team decides teamkills (members, and members and their allies, are on one side; any other kill involving a member is a normal kill) and colors its members' names.
+
+```csharp
+using DeathRecap.API;
+using PlayerRoles;
+
+CustomTeam team = new("Serpent's Hand", player => IsSerpentsHand(player))
+{
+    Color = "#FF96DE",     // the killer's name, or null for their role's color
+    Allies = Faction.SCP,  // the vanilla faction it fights alongside, or null for none
+};
+
+CustomTeams.Register(team);   // in OnEnabled
+CustomTeams.Unregister(team); // in OnDisabled
+```
+
+- The membership check runs while a player is dying, before their role changes, and for a killer still on the life they killed with. Exceptions it throws are logged and treated as "not a member".
+- Available from v2.1.0. To make DeathRecap optional, reference `DeathRecap.dll` without copying it, put every call to `DeathRecap.API` in one class of its own, and only call that class when `Exiled.Loader.Loader.Plugins` contains DeathRecap v2.1.0 or later.
 
 ## Requirements
 

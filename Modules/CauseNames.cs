@@ -4,16 +4,10 @@
     using System.Text.RegularExpressions;
     using DamageType = Exiled.API.Enums.DamageType;
 
-    /// <summary>
-    /// Turns damage types into readable names for the recap.
-    /// </summary>
     public static class CauseNames
     {
         private static readonly Regex WordBoundary = new("(?<=[a-z0-9])(?=[A-Z])", RegexOptions.Compiled);
 
-        /// <summary>
-        /// Builds the default damage type names shown in the translation file.
-        /// </summary>
         public static Dictionary<DamageType, string> BuildDefaults()
         {
             return new Dictionary<DamageType, string>
@@ -75,9 +69,6 @@
             };
         }
 
-        /// <summary>
-        /// Gets the configured name for a damage type, falling back to a formatted version of its identifier.
-        /// </summary>
         public static string Get(DamageType type)
         {
             return Plugin.Instance!.Translation.DamageTypeNames.TryGetValue(type, out string? name) && !string.IsNullOrWhiteSpace(name)

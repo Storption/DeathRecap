@@ -5,9 +5,6 @@
     using Exiled.API.Interfaces;
     using PlayerRoles;
 
-    /// <summary>
-    /// The plugin's user-facing messages.
-    /// </summary>
     public class Translation : ITranslation
     {
         [Description("The first line of the recap when a player killed you. {0} is their colored name, {1} their role, {2} the weapon or cause.")]

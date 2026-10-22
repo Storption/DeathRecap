@@ -1,6 +1,7 @@
 ﻿namespace DeathRecap.Modules
 {
     using DamageType = Exiled.API.Enums.DamageType;
+    using DeathRecap.API;
     using Exiled.API.Extensions;
     using Exiled.API.Features;
     using Exiled.API.Features.DamageHandlers;
@@ -13,9 +14,6 @@
     using System.Linq;
     using UnityEngine;
 
-    /// <summary>
-    /// Tracks per-life damage in both directions and shows a death recap once a player dies.
-    /// </summary>
     public static class Recap
     {
         private const float RefreshIntervalSeconds = 2f;
@@ -30,6 +28,7 @@
         private static readonly Dictionary<int, DateTime> LifeStartTimes = new();
         private static readonly Dictionary<int, int> KillsThisLife = new();
         private static readonly Dictionary<int, (string Text, string Color)> DeathLocations = new();
+        private static readonly Dictionary<int, CustomTeam?> DyingTeams = new();
 
         private static Config Config => Plugin.Instance!.Config;
         private static Translation Translation => Plugin.Instance!.Translation;
@@ -86,6 +85,7 @@
             LifeStartTimes.Remove(id);
             KillsThisLife.Remove(id);
             DeathLocations.Remove(id);
+            DyingTeams.Remove(id);
         }
 
         private static void ResetState()
@@ -102,6 +102,7 @@
             LifeStartTimes.Clear();
             KillsThisLife.Clear();
             DeathLocations.Clear();
+            DyingTeams.Clear();
         }
 
         private static void OnSpawned(SpawnedEventArgs ev)
@@ -213,7 +214,13 @@
 
         private static void OnPlayerDying(DyingEventArgs ev)
         {
-            if (ev.Player is null || !Config.ShowLocation)
+            if (ev.Player is null)
+                return;
+
+            // By Died, the plugin that owns a team may already have taken the player off it.
+            DyingTeams[ev.Player.Id] = CustomTeams.Get(ev.Player);
+
+            if (!Config.ShowLocation)
                 return;
 
             if (DeathDetails.TryDescribeLocation(ev.Player, out string location, out string color))
@@ -234,7 +241,11 @@
             Player? killer = ev.Attacker is not null && ev.Attacker != victim ? ev.Attacker : null;
             int victimId = victim.Id;
 
-            DeathCategory category = DeathClassifier.Classify(ev, out string? customReason);
+            DyingTeams.TryGetValue(victimId, out CustomTeam? victimTeam);
+            DyingTeams.Remove(victimId);
+            CustomTeam? killerTeam = killer is not null && DeathClassifier.IsSameLife(ev, killer) ? CustomTeams.Get(killer) : null;
+
+            DeathCategory category = DeathClassifier.Classify(ev, killerTeam, victimTeam, out string? customReason);
             List<KeyValuePair<string, float>> breakdown = BuildBreakdown(victimId);
 
             TimeSpan? survived = null;
@@ -285,8 +296,8 @@
                 bool sameLife = DeathClassifier.IsSameLife(ev, killer);
                 string roleSource = "RoleAtHit";
 
-                death.KillerName = ColoredName(killer, killerRole);
-                death.KillerColor = NameColor(killerRole);
+                death.KillerColor = killerTeam?.Color ?? killerRole.GetColor().ToHex();
+                death.KillerName = $"<color={death.KillerColor}>{killer.Nickname}</color>";
                 death.KillerRole = sameLife ? RoleDisplay.Get(killer, out roleSource) : RoleDisplay.GetBaseRoleName(killerRole);
 
                 if (sameLife)
@@ -302,7 +313,7 @@
                     death.Distance = Math.Max(lastDistance, 0.1f);
 
                 if (Config.Debug)
-                    Log.Debug($"Killer role: '{death.KillerRole}' (source={roleSource}, base={killer.Role.Type}, uniqueRole='{killer.UniqueRole}', customInfo='{killer.CustomInfo}').");
+                    Log.Debug($"Killer role: '{death.KillerRole}' (source={roleSource}, base={killer.Role.Type}, uniqueRole='{killer.UniqueRole}', customInfo='{killer.CustomInfo}', team='{killerTeam?.Name}', victim team='{victimTeam?.Name}').");
             }
 
             string text = RecapFormatter.Build(death);
@@ -311,10 +322,6 @@
             if (Config.Debug)
                 Log.Debug($"Recap for {victim.Nickname} (id={victimId}): {System.Text.RegularExpressions.Regex.Replace(text.Replace("\n", " | "), "<.*?>", string.Empty)}");
         }
-
-        private static string NameColor(RoleTypeId role) => role.GetColor().ToHex();
-
-        private static string ColoredName(Player player, RoleTypeId role) => $"<color={NameColor(role)}>{player.Nickname}</color>";
 
         private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);
 

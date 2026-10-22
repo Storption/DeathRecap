@@ -8,9 +8,6 @@
     using Exiled.Events.EventArgs.Player;
     using PlayerStatsSystem;
 
-    /// <summary>
-    /// Works out the extra details shown in a recap: where the killing shot landed and where the player died.
-    /// </summary>
     public static class DeathDetails
     {
         private static readonly Regex ZonePrefix = new("^(Lcz|Hcz|Ez)", RegexOptions.Compiled);
@@ -54,9 +51,6 @@
             };
         }
 
-        /// <summary>
-        /// Describes where a firearm hit landed, or returns null if the killing blow wasn't a firearm.
-        /// </summary>
         public static string? DescribeHit(DiedEventArgs ev)
         {
             if (!ev.DamageHandler.Is(out FirearmDamageHandler firearm))
@@ -67,9 +61,6 @@
                 : firearm.Hitbox.ToString();
         }
 
-        /// <summary>
-        /// Describes where a player currently is. Returns false if their location can't be worked out.
-        /// </summary>
         public static bool TryDescribeLocation(Player player, out string location, out string color)
         {
             location = string.Empty;

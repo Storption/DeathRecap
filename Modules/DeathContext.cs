@@ -3,9 +3,6 @@
     using System;
     using System.Collections.Generic;
 
-    /// <summary>
-    /// Everything the recap formatter needs to know about one death.
-    /// </summary>
     public sealed class DeathContext
     {
         public DeathCategory Category { get; set; }

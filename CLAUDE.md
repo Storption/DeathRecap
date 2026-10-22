@@ -1,12 +1,13 @@
 # DeathRecap
 
-Shows a player a recap of their death once they enter spectator. The wording depends on the kind of death (player, SCP, zombie, teamkill, environment, custom reason, unknown), with optional detail lines (distance, hit location, killer health, damage dealt, damage breakdown by source, survival time, location, kills that life). Current version: **v2.0.1**.
+Shows a player a recap of their death once they enter spectator. The wording depends on the kind of death (player, SCP, zombie, teamkill, environment, custom reason, unknown), with optional detail lines (distance, hit location, killer health, damage dealt, damage breakdown by source, survival time, location, kills that life). Current version: **v2.1.0**.
 
 See `../CLAUDE.md` for shared plugin conventions and the `AutoUpdate` module design.
 
 ## Structure
 
 - `Plugin.cs`, `Config.cs`, `Translation.cs`
+- `API/` — the public API other plugins use (`CustomTeam`, `CustomTeams`). It's a contract: don't rename or change the signatures of anything public in it without a major version. Additions are fine.
 - `Modules/Recap.cs` — tracking (damage per attacker and per cause, distances, life timers, kills) and showing the recap
 - `Modules/DeathClassifier.cs` — sorts a death into a `DeathCategory`
 - `Modules/DeathContext.cs` — the data one recap is built from
@@ -15,6 +16,10 @@ See `../CLAUDE.md` for shared plugin conventions and the `AutoUpdate` module des
 - `Modules/CauseNames.cs` — readable names for `DamageType`
 - `Modules/DeathDetails.cs` — hit location and death location
 - `Modules/AutoUpdate.cs` — shared module, see `../CLAUDE.md`
+
+## Public API (v2.1.0+)
+
+Same shape as RoundMoments' `CustomTeam` (name, membership check, settable `Color` and `Allies`), without the wipe parts; SCP999 and AnomalyFactions register with both. `CustomTeams.AreEnemies` decides `DeathCategory.TeamKill` before the zombie/SCP/player split: no custom team on either side means `HitboxIdentity.IsEnemy` on role-at-hit; the same team means teammates; otherwise each side is its team's `Allies` (or its role's faction) and they're enemies unless both are the same non-null faction. `Recap.OnPlayerDying` records the victim's team (`DyingTeams`), since the owning plugin may drop them by `Died`; the killer's team only counts while `IsSameLife`. The killer's name and health color use the team's `Color`. The membership check is wrapped in try/catch.
 
 ## Design rules
 
