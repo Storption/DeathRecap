@@ -44,6 +44,7 @@ CustomTeam team = new("Serpent's Hand", player => IsSerpentsHand(player))
 {
     Color = "#FF96DE",     // the killer's name, or null for their role's color
     Allies = Faction.SCP,  // the vanilla faction it fights alongside, or null for none
+    AttackName = victim => LastAttack(victim), // what a member killed with ("a tendril"), or null to name it from the damage type
 };
 
 CustomTeams.Register(team);   // in OnEnabled
@@ -51,7 +52,8 @@ CustomTeams.Unregister(team); // in OnDisabled
 ```
 
 - The membership check runs while a player is dying, before their role changes, and for a killer still on the life they killed with. Exceptions it throws are logged and treated as "not a member".
-- Available from v2.1.0. To make DeathRecap optional, reference `DeathRecap.dll` without copying it, put every call to `DeathRecap.API` in one class of its own, and only call that class when `Exiled.Loader.Loader.Plugins` contains DeathRecap v2.1.0 or later.
+- `AttackName` is for teams whose attacks share one of the game's damage types; the phrase follows "with" in the recap. It's asked while the death is being handled.
+- Available from v2.1.0 (`AttackName` from v2.2.0). To make DeathRecap optional, reference `DeathRecap.dll` without copying it, put every call to `DeathRecap.API` in one class of its own, and only call that class when `Exiled.Loader.Loader.Plugins` contains DeathRecap v2.1.0 or later.
 
 ## Requirements
 

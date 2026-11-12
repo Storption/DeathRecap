@@ -279,7 +279,7 @@
             DeathContext death = new()
             {
                 Category = category,
-                CauseName = CauseNames.Get(ev.DamageHandler.Type),
+                CauseName = killerTeam?.AttackName?.Invoke(victim) ?? CauseNames.Get(ev.DamageHandler.Type),
                 CustomReason = customReason,
                 Breakdown = breakdown,
                 HitLocation = DeathDetails.DescribeHit(ev),

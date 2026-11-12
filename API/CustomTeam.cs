@@ -42,5 +42,11 @@
         /// members, or between a member and an ally, are teamkills; any other kill involving a member is an enemy kill.
         /// </summary>
         public Faction? Allies { get; set; }
+
+        /// <summary>
+        /// Gets or sets what a member killed someone with, given the victim (a phrase like <c>a tendril</c>), or null to name
+        /// it from the damage type as usual. For teams whose attacks the game's damage types can't tell apart.
+        /// </summary>
+        public Func<Player, string?>? AttackName { get; set; }
     }
 }

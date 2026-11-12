@@ -75,7 +75,7 @@
         public bool AutoUpdateEnabled { get; set; } = true;
 
         [Description("Whether to keep a backup of the previous .dll before replacing it with an update.")]
-        public bool AutoUpdateBackup { get; set; } = true;
+        public bool AutoUpdateBackup { get; set; } = false;
 
         [Description("Whether to automatically restart the server once the current round ends, to apply a downloaded update. Never restarts mid-round.")]
         public bool AutoUpdateRestart { get; set; } = true;

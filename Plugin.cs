@@ -15,7 +15,7 @@
 
         public override Version RequiredExiledVersion { get; } = new Version(9, 14, 2);
 
-        public override Version Version { get; } = new Version(2, 1, 0);
+        public override Version Version { get; } = new Version(2, 2, 0);
 
         public override void OnEnabled()
         {
